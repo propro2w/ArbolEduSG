@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ArbolEduSG · Árboles binarios</title>
+  <meta name="description" content="Software educativo para aprender árboles binarios: inserción, eliminación, búsqueda y recorridos.">
+
+  <!-- Tipografías (si no hay internet, el navegador usa las de respaldo) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header class="cabecera">
+  <div class="marca">
+    <svg class="logo" viewBox="0 0 40 40" aria-hidden="true">
+      <line x1="20" y1="9" x2="10" y2="22" /><line x1="20" y1="9" x2="30" y2="22" />
+      <line x1="10" y1="22" x2="5" y2="33" /><line x1="10" y1="22" x2="15" y2="33" />
+      <circle cx="20" cy="9" r="6" fill="#ffd23f"/><circle cx="10" cy="22" r="5" fill="#2f6bff"/>
+      <circle cx="30" cy="22" r="5" fill="#0f9d58"/><circle cx="5" cy="33" r="4" fill="#e5383b"/>
+      <circle cx="15" cy="33" r="4" fill="#9b5de5"/>
+    </svg>
+    <h1>ArbolEduSG</h1>
+  </div>
+
+  <nav class="tabs" role="tablist" aria-label="Módulos">
+    <button class="tab activa" role="tab" aria-selected="true"  data-modulo="mod-simulador">Simulador</button>
+    <button class="tab"        role="tab" aria-selected="false" data-modulo="mod-teoria">Teoría y glosario</button>
+    <button class="tab"        role="tab" aria-selected="false" data-modulo="mod-quiz">Evaluador</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ===================== MÓDULO 1: SIMULADOR ===================== -->
+  <section id="mod-simulador" class="modulo activo" role="tabpanel">
+    <div class="rejilla-sim">
+
+      <div class="col-principal">
+        <div class="panel barra-control">
+          <div class="grupo">
+            <label for="valor">Valor (número o un carácter)</label>
+            <div class="fila">
+              <input id="valor" type="text" maxlength="6" autocomplete="off" placeholder="Ej. 42 o K">
+              <button class="btn primario accion" id="btn-insertar">Insertar</button>
+              <button class="btn accion" id="btn-eliminar">Eliminar</button>
+              <button class="btn accion" id="btn-buscar">Buscar</button>
+            </div>
+          </div>
+
+          <div class="grupo">
+            <span class="etq">Recorridos</span>
+            <div class="fila">
+              <button class="btn accion" id="btn-preorden">Preorden</button>
+              <button class="btn accion" id="btn-inorden">Inorden</button>
+              <button class="btn accion" id="btn-postorden">Postorden</button>
+            </div>
+          </div>
+
+          <div class="grupo">
+            <span class="etq">Árbol</span>
+            <div class="fila">
+              <button class="btn suave accion" id="btn-ejemplo">Cargar ejemplo</button>
+              <button class="btn suave accion" id="btn-aleatorio">Aleatorio</button>
+              <button class="btn suave accion" id="btn-limpiar">Vaciar</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel lienzo-panel">
+          <div class="lienzo-cab">
+            <span class="estado-op" id="estado-op">Listo</span>
+            <span class="stats">Nodos: <b id="stat-nodos">0</b></span>
+            <span class="stats">Altura: <b id="stat-altura">–</b></span>
+            <label class="check"><input type="checkbox" id="chk-niveles"> Mostrar niveles</label>
+          </div>
+
+          <svg id="svg-sim" class="lienzo" viewBox="0 0 640 320" preserveAspectRatio="xMidYMid meet"
+               role="img" aria-label="Árbol binario interactivo"></svg>
+
+          <div class="reproductor">
+            <label class="velocidad">Velocidad
+              <input type="range" id="velocidad" min="1" max="10" value="5">
+            </label>
+            <label class="check"><input type="checkbox" id="modo-manual"> Paso a paso manual</label>
+            <button class="btn" id="btn-siguiente" disabled>Siguiente paso</button>
+            <button class="btn peligro" id="btn-detener" disabled>Detener</button>
+          </div>
+        </div>
+      </div>
+
+      <aside class="col-lateral">
+        <div class="panel">
+          <h3>Consola</h3>
+          <div id="consola" class="consola" aria-live="polite">
+            <div class="linea cmd">&gt; Elige un recorrido para ver su salida aquí.</div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Pila de llamadas (recursión)</h3>
+          <ol id="pila" class="pila"><li class="vacia">vacía</li></ol>
+        </div>
+        <div class="panel">
+          <h3>Qué está pasando</h3>
+          <ol id="bitacora" class="bitacora"><li class="aviso">Inserta un valor para empezar.</li></ol>
+        </div>
+      </aside>
+
+    </div>
+  </section>
+
+  <!-- ===================== MÓDULO 2: TEORÍA ===================== -->
+  <section id="mod-teoria" class="modulo" role="tabpanel">
+    <div class="rejilla-teoria">
+      <div class="panel">
+        <h2>Explora un árbol de ejemplo</h2>
+        <p class="ayuda">Elige un concepto y mira dónde aparece en el árbol. También puedes tocar cualquier nodo para ver sus datos.</p>
+        <div id="chips" class="chips" role="group" aria-label="Conceptos"></div>
+        <svg id="svg-teoria" class="lienzo lienzo-teoria" viewBox="0 0 640 320" preserveAspectRatio="xMidYMid meet"
+             role="img" aria-label="Árbol de ejemplo para explicar conceptos"></svg>
+      </div>
+
+      <div class="panel detalle" id="detalle">
+        <h3 id="t-titulo"></h3>
+        <p id="t-def"></p>
+        <p id="t-nota" class="nota"></p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Glosario</h2>
+      <input id="buscar-glosario" class="buscador" type="search" placeholder="Buscar un término…" autocomplete="off">
+      <div id="glosario" class="glosario"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Los tres recorridos en pseudocódigo</h2>
+      <p class="ayuda">Los tres son recursivos. Cambia solamente el momento en que se visita la raíz del subárbol.</p>
+      <div class="codigos">
+        <div class="codigo">
+          <h4>Preorden · Raíz, Izq, Der</h4>
+<pre>preorden(nodo):
+  si nodo es nulo: regresar
+  visitar(nodo)
+  preorden(nodo.izq)
+  preorden(nodo.der)</pre>
+        </div>
+        <div class="codigo">
+          <h4>Inorden · Izq, Raíz, Der</h4>
+<pre>inorden(nodo):
+  si nodo es nulo: regresar
+  inorden(nodo.izq)
+  visitar(nodo)
+  inorden(nodo.der)</pre>
+        </div>
+        <div class="codigo">
+          <h4>Postorden · Izq, Der, Raíz</h4>
+<pre>postorden(nodo):
+  si nodo es nulo: regresar
+  postorden(nodo.izq)
+  postorden(nodo.der)
+  visitar(nodo)</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== MÓDULO 3: QUIZ ===================== -->
+  <section id="mod-quiz" class="modulo" role="tabpanel">
+    <div class="panel quiz-caja">
+
+      <div id="quiz-inicio">
+        <h2>Evaluador de competencias</h2>
+        <p>Te mostraremos árboles aleatorios y te pediremos el resultado de un recorrido. Escribe los valores separados por espacios o comas.</p>
+        <div class="fila">
+          <label for="quiz-n">Número de preguntas</label>
+          <select id="quiz-n">
+            <option value="5">5</option>
+            <option value="10">10</option>
+          </select>
+          <button class="btn primario" id="quiz-empezar">Comenzar evaluación</button>
+        </div>
+      </div>
+
+      <div id="quiz-pregunta" hidden>
+        <div class="quiz-cab">
+          <span id="quiz-progreso">Pregunta 1 de 5</span>
+          <div class="barra"><div id="quiz-barra"></div></div>
+          <span id="quiz-aciertos">Aciertos: 0</span>
+        </div>
+
+        <svg id="svg-quiz" class="lienzo lienzo-quiz" viewBox="0 0 640 320" preserveAspectRatio="xMidYMid meet"
+             role="img" aria-label="Árbol de la pregunta"></svg>
+
+        <h3 id="quiz-enunciado"></h3>
+        <div class="fila">
+          <input id="quiz-respuesta" type="text" autocomplete="off" placeholder="Ej. 8 3 10 1 6">
+          <button class="btn primario" id="quiz-comprobar">Comprobar</button>
+        </div>
+        <div id="quiz-feedback" class="feedback" hidden></div>
+        <button class="btn" id="quiz-siguiente" hidden>Siguiente pregunta</button>
+      </div>
+
+      <div id="quiz-final" hidden>
+        <h2>Resultado final</h2>
+        <div class="nota-final"><span id="quiz-calif">0</span><small>/ 100</small></div>
+        <p id="quiz-mensaje"></p>
+        <ul id="quiz-resumen" class="resumen"></ul>
+        <button class="btn primario" id="quiz-reiniciar">Intentar de nuevo</button>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<!-- Orden importante: utilidades → clases del motor → módulos → arranque -->
+<script src="js/utilidades.js"></script>
+<script src="js/Nodo.js"></script>
+<script src="js/ArbolBinario.js"></script>
+<script src="js/Visualizador.js"></script>
+<script src="js/simulador.js"></script>
+<script src="js/teoria.js"></script>
+<script src="js/quiz.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
