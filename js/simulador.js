@@ -1,9 +1,7 @@
 /* ==========================================================
    simulador.js · Módulo 1: Simulador visual e interactivo
-   Inserción, eliminación, búsqueda y recorridos animados.
    ========================================================== */
 
-/** Error especial que se lanza al presionar "Detener". */
 class Cancelado extends Error {}
 
 class Simulador {
@@ -12,19 +10,18 @@ class Simulador {
     this.arbol = new ArbolBinario();
     this.vis = new Visualizador(this.$('svg-sim'));
 
-    this.ocupado = false;     // hay una animación en curso
-    this.cancelar = false;    // el usuario pidió detener
-    this._siguiente = null;   // resolutor del modo manual
-    this.pilaNodos = [];      // pila de llamadas recursivas
-    this.salidaEl = null;     // contenedor de la salida en consola
+    this.ocupado = false;
+    this.cancelar = false;
+    this._siguiente = null;
+    this.pilaNodos = [];
+    this.salidaEl = null;
+    this.modoActual = 'numerico';
 
     this._enlazarEventos();
     this._actualizarVelocidad();
     this.vis.actualizar(this.arbol, false);
     this.actualizarStats();
   }
-
-  /* ---------- Eventos de la interfaz ---------- */
 
   _enlazarEventos() {
     const $ = this.$;
@@ -33,11 +30,30 @@ class Simulador {
     $('btn-buscar').addEventListener('click', () => this.buscar());
     $('valor').addEventListener('keydown', (e) => { if (e.key === 'Enter') this.insertar(); });
 
+    $('tipo-arbol').addEventListener('change', (e) => {
+      const modo = e.target.value;
+      $('valor').placeholder = modo === 'numerico' ? 'Ej. 42' : 'Ej. K';
+      if (!this.arbol.estaVacio()) {
+        if (confirm('Cambiar el tipo de árbol vaciará el lienzo actual. ¿Deseas continuar?')) {
+          this.cargar([], 'Árbol cambiado a modo ' + (modo === 'numerico' ? 'Enteros' : 'Letras'));
+        } else {
+          e.target.value = this.modoActual;
+        }
+      } else {
+        this.actualizarStats();
+      }
+      this.modoActual = $('tipo-arbol').value;
+    });
+
     $('btn-preorden').addEventListener('click', () => this.recorrer('preorden'));
     $('btn-inorden').addEventListener('click', () => this.recorrer('inorden'));
     $('btn-postorden').addEventListener('click', () => this.recorrer('postorden'));
 
-    $('btn-ejemplo').addEventListener('click', () => this.cargar([50, 30, 70, 20, 40, 60, 80, 35], 'Árbol de ejemplo cargado.'));
+    $('btn-ejemplo').addEventListener('click', () => {
+      const modo = $('tipo-arbol').value;
+      const datos = modo === 'numerico' ? [50, 30, 70, 20, 40, 60, 80, 35] : ['M', 'F', 'T', 'B', 'H', 'P', 'W', 'K'];
+      this.cargar(datos, 'Árbol de ejemplo cargado.');
+    });
     $('btn-aleatorio').addEventListener('click', () => this.cargar(this._valoresAleatorios(), 'Árbol aleatorio generado.'));
     $('btn-limpiar').addEventListener('click', () => this.cargar([], 'Árbol vaciado.'));
 
@@ -52,7 +68,6 @@ class Simulador {
     });
   }
 
-  /** Milisegundos de pausa entre pasos según el control de velocidad. */
   retardo() { return 1500 - Number(this.$('velocidad').value) * 130; }
 
   _actualizarVelocidad() { this.vis.duracion = Math.min(500, this.retardo() * 0.55); }
@@ -61,7 +76,6 @@ class Simulador {
     if (this._siguiente) { const r = this._siguiente; this._siguiente = null; r(); }
   }
 
-  /** Pausa entre pasos. En modo manual espera al botón "Siguiente paso". */
   async esperar(factor = 1, omitirManual = false) {
     if (this.cancelar) throw new Cancelado();
     const manual = this.$('modo-manual').checked;
@@ -74,8 +88,6 @@ class Simulador {
     }
     if (this.cancelar) throw new Cancelado();
   }
-
-  /* ---------- Ejecución protegida de una operación ---------- */
 
   async ejecutar(titulo, fn) {
     if (this.ocupado) return;
@@ -112,10 +124,9 @@ class Simulador {
     this.$('btn-detener').disabled = !si;
   }
 
-  /* ---------- Lectura del valor ---------- */
-
   leerValor() {
-    const r = ArbolBinario.parsear(this.$('valor').value);
+    const modo = this.$('tipo-arbol').value;
+    const r = ArbolBinario.parsear(this.$('valor').value, modo);
     if (r.error) {
       mostrarToast(r.error);
       this.$('valor').focus();
@@ -124,15 +135,12 @@ class Simulador {
     return r;
   }
 
-  /** Texto que explica una comparación. */
   _textoCmp(v, nodoValor, cmp) {
     if (cmp === 0) return `${v} = ${nodoValor}: ¡lo encontré!`;
     return cmp < 0
       ? `Comparo ${v} con ${nodoValor}: ${v} < ${nodoValor} → voy a la izquierda`
       : `Comparo ${v} con ${nodoValor}: ${v} > ${nodoValor} → voy a la derecha`;
   }
-
-  /* ---------- INSERTAR ---------- */
 
   async insertar() {
     if (this.ocupado) return;
@@ -182,8 +190,6 @@ class Simulador {
     });
   }
 
-  /* ---------- BUSCAR ---------- */
-
   async buscar() {
     if (this.ocupado) return;
     const lectura = this.leerValor();
@@ -220,8 +226,6 @@ class Simulador {
       this.vis.quitar('puntero');
     });
   }
-
-  /* ---------- ELIMINAR ---------- */
 
   async eliminar() {
     if (this.ocupado) return;
@@ -296,8 +300,6 @@ class Simulador {
     });
   }
 
-  /* ---------- RECORRIDOS ---------- */
-
   async recorrer(tipo) {
     if (this.ocupado) return;
     if (this.arbol.estaVacio()) { mostrarToast('El árbol está vacío: inserta valores primero.'); return; }
@@ -321,7 +323,6 @@ class Simulador {
         const n = ev.nodo;
 
         if (ev.t === 'entra') {
-          // El padre queda "en espera" mientras se explora este subárbol
           const padre = this.pilaNodos[this.pilaNodos.length - 1];
           if (padre && this.vis.estadoDe(padre) !== 'visitado') this.vis.marcar(padre, 'camino');
           this.pilaNodos.push(n);
@@ -338,7 +339,7 @@ class Simulador {
           this.log(`Visito ${n.valor} → se imprime en la consola.`, 'ok');
           await this.esperar();
 
-        } else { // 'sale'
+        } else {
           this.pilaNodos.pop();
           this.renderPila(tipo);
           const tope = this.pilaNodos[this.pilaNodos.length - 1];
@@ -359,11 +360,15 @@ class Simulador {
     });
   }
 
-  /* ---------- Carga de árboles ---------- */
-
   _valoresAleatorios() {
+    const modo = this.$('tipo-arbol').value;
     const set = new Set();
-    while (set.size < 8) set.add(aleatorioEntre(1, 99));
+    if (modo === 'numerico') {
+      while (set.size < 8) set.add(aleatorioEntre(1, 99));
+    } else {
+      const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      while (set.size < 8) set.add(letras[aleatorioEntre(0, 25)]);
+    }
     return [...set];
   }
 
@@ -380,8 +385,6 @@ class Simulador {
       this.log(mensaje, 'ok');
     });
   }
-
-  /* ---------- Paneles: consola, pila, bitácora ---------- */
 
   consolaInicio(titulo) {
     const c = this.$('consola');
@@ -437,7 +440,10 @@ class Simulador {
   }
 
   actualizarStats() {
+    const modo = this.$('tipo-arbol').value;
+    this.$('stat-tipo').textContent = modo === 'numerico' ? 'Enteros' : 'Letras';
     this.$('stat-nodos').textContent = this.arbol.tamano;
     this.$('stat-altura').textContent = this.arbol.estaVacio() ? '–' : this.arbol.altura();
+    this.$('stat-grado').textContent = this.arbol.estaVacio() ? '–' : this.arbol.gradoMaximo();
   }
 }

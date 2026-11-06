@@ -10,7 +10,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const tabs = [...document.querySelectorAll('.tab')];
   const modulos = [...document.querySelectorAll('.modulo')];
 
-  /** Muestra el módulo indicado y marca su pestaña. */
   function irA(idModulo) {
     tabs.forEach((t) => {
       const activa = t.dataset.modulo === idModulo;
@@ -23,6 +22,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
   tabs.forEach((t) => t.addEventListener('click', () => irA(t.dataset.modulo)));
 
-  // Acceso directo desde la consola del navegador para depurar (opcional)
+  // Modo Oscuro Global
+  const btnOscuro = document.getElementById('btn-modo-oscuro');
+  const temaGuardado = localStorage.getItem('tema-arboledu');
+
+  if (temaGuardado === 'oscuro') {
+    document.body.classList.add('modo-oscuro');
+    btnOscuro.textContent = '☀️ Modo Claro';
+  }
+
+  btnOscuro.addEventListener('click', () => {
+    const esOscuro = document.body.classList.toggle('modo-oscuro');
+    btnOscuro.textContent = esOscuro ? '☀️ Modo Claro' : '🌙 Modo Oscuro';
+    localStorage.setItem('tema-arboledu', esOscuro ? 'oscuro' : 'claro');
+  });
+
   window.ArbolEdu = { simulador, teoria, quiz };
 });

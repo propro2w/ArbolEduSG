@@ -6,7 +6,7 @@
   <title>ArbolEduSG · Árboles binarios</title>
   <meta name="description" content="Software educativo para aprender árboles binarios: inserción, eliminación, búsqueda y recorridos.">
 
-  <!-- Tipografías (si no hay internet, el navegador usa las de respaldo) -->
+  <!-- Tipografías -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -27,11 +27,14 @@
     <h1>ArbolEduSG</h1>
   </div>
 
-  <nav class="tabs" role="tablist" aria-label="Módulos">
-    <button class="tab activa" role="tab" aria-selected="true"  data-modulo="mod-simulador">Simulador</button>
-    <button class="tab"        role="tab" aria-selected="false" data-modulo="mod-teoria">Teoría y glosario</button>
-    <button class="tab"        role="tab" aria-selected="false" data-modulo="mod-quiz">Evaluador</button>
-  </nav>
+  <div class="header-acciones">
+    <button class="btn suave" id="btn-modo-oscuro" title="Cambiar tema visual">🌙 Modo Oscuro</button>
+    <nav class="tabs" role="tablist" aria-label="Módulos">
+      <button class="tab activa" role="tab" aria-selected="true"  data-modulo="mod-simulador">Simulador</button>
+      <button class="tab"        role="tab" aria-selected="false" data-modulo="mod-teoria">Teoría y glosario</button>
+      <button class="tab"        role="tab" aria-selected="false" data-modulo="mod-quiz">Evaluador</button>
+    </nav>
+  </div>
 </header>
 
 <main>
@@ -43,9 +46,17 @@
       <div class="col-principal">
         <div class="panel barra-control">
           <div class="grupo">
-            <label for="valor">Valor (número o un carácter)</label>
+            <label for="tipo-arbol">Tipo de Árbol</label>
+            <select id="tipo-arbol">
+              <option value="numerico">Números Enteros</option>
+              <option value="letras">Letras (A-Z)</option>
+            </select>
+          </div>
+
+          <div class="grupo">
+            <label for="valor">Valor</label>
             <div class="fila">
-              <input id="valor" type="text" maxlength="6" autocomplete="off" placeholder="Ej. 42 o K">
+              <input id="valor" type="text" maxlength="6" autocomplete="off" placeholder="Ej. 42">
               <button class="btn primario accion" id="btn-insertar">Insertar</button>
               <button class="btn accion" id="btn-eliminar">Eliminar</button>
               <button class="btn accion" id="btn-buscar">Buscar</button>
@@ -74,8 +85,10 @@
         <div class="panel lienzo-panel">
           <div class="lienzo-cab">
             <span class="estado-op" id="estado-op">Listo</span>
+            <span class="stats">Tipo: <b id="stat-tipo">Enteros</b></span>
             <span class="stats">Nodos: <b id="stat-nodos">0</b></span>
             <span class="stats">Altura: <b id="stat-altura">–</b></span>
+            <span class="stats">Grado Árbol: <b id="stat-grado">–</b></span>
             <label class="check"><input type="checkbox" id="chk-niveles"> Mostrar niveles</label>
           </div>
 
