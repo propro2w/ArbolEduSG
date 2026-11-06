@@ -31,7 +31,7 @@
     <button class="btn suave" id="btn-modo-oscuro" title="Cambiar tema visual">🌙 Modo Oscuro</button>
     <nav class="tabs" role="tablist" aria-label="Módulos">
       <button class="tab activa" role="tab" aria-selected="true"  data-modulo="mod-simulador">Simulador</button>
-      <button class="tab"        role="tab" aria-selected="false" data-modulo="mod-teoria">Teoría y glosario</button>
+      <button class="tab"        role="tab" aria-selected="false" data-modulo="mod-teoria">Teoría</button>
       <button class="tab"        role="tab" aria-selected="false" data-modulo="mod-quiz">Evaluador</button>
     </nav>
   </div>
@@ -149,39 +149,54 @@
       </div>
     </div>
 
-    <div class="panel">
-      <h2>Glosario</h2>
-      <input id="buscar-glosario" class="buscador" type="search" placeholder="Buscar un término…" autocomplete="off">
-      <div id="glosario" class="glosario"></div>
-    </div>
-
-    <div class="panel">
-      <h2>Los tres recorridos en pseudocódigo</h2>
-      <p class="ayuda">Los tres son recursivos. Cambia solamente el momento en que se visita la raíz del subárbol.</p>
+    <div class="panel" style="margin-top: 1.5rem;">
+      <h2>Recorridos en Árboles Binarios</h2>
+      <p class="ayuda">Animación animada en bucle con sus correspondientes algoritmos en pseudocódigo.</p>
+      
       <div class="codigos">
-        <div class="codigo">
-          <h4>Preorden · Raíz, Izq, Der</h4>
-<pre>preorden(nodo):
-  si nodo es nulo: regresar
-  visitar(nodo)
-  preorden(nodo.izq)
-  preorden(nodo.der)</pre>
+        <!-- Preorden Card -->
+        <div class="codigo-card">
+          <h4>Preorden (Raíz - Izq - Der)</h4>
+          <div class="anim-arbol-contenedor">
+            <svg id="anim-preorden" viewBox="0 0 200 150" class="svg-anim-recorrido"></svg>
+          </div>
+<pre>Procedimiento Preorden(nodo)
+    Si nodo ≠ NULO entonces
+        Visitar(nodo.valor)
+        Preorden(nodo.izq)
+        Preorden(nodo.der)
+    Fin Si
+Fin Procedimiento</pre>
         </div>
-        <div class="codigo">
-          <h4>Inorden · Izq, Raíz, Der</h4>
-<pre>inorden(nodo):
-  si nodo es nulo: regresar
-  inorden(nodo.izq)
-  visitar(nodo)
-  inorden(nodo.der)</pre>
+
+        <!-- Inorden Card -->
+        <div class="codigo-card">
+          <h4>Inorden (Izq - Raíz - Der)</h4>
+          <div class="anim-arbol-contenedor">
+            <svg id="anim-inorden" viewBox="0 0 200 150" class="svg-anim-recorrido"></svg>
+          </div>
+<pre>Procedimiento Inorden(nodo)
+    Si nodo ≠ NULO entonces
+        Inorden(nodo.izq)
+        Visitar(nodo.valor)
+        Inorden(nodo.der)
+    Fin Si
+Fin Procedimiento</pre>
         </div>
-        <div class="codigo">
-          <h4>Postorden · Izq, Der, Raíz</h4>
-<pre>postorden(nodo):
-  si nodo es nulo: regresar
-  postorden(nodo.izq)
-  postorden(nodo.der)
-  visitar(nodo)</pre>
+
+        <!-- Postorden Card -->
+        <div class="codigo-card">
+          <h4>Postorden (Izq - Der - Raíz)</h4>
+          <div class="anim-arbol-contenedor">
+            <svg id="anim-postorden" viewBox="0 0 200 150" class="svg-anim-recorrido"></svg>
+          </div>
+<pre>Procedimiento Postorden(nodo)
+    Si nodo ≠ NULO entonces
+        Postorden(nodo.izq)
+        Postorden(nodo.der)
+        Visitar(nodo.valor)
+    Fin Si
+Fin Procedimiento</pre>
         </div>
       </div>
     </div>
