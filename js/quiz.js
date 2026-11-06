@@ -1,6 +1,5 @@
 /* ==========================================================
-   quiz.js · Módulo 3: Evaluador de competencias
-   Genera árboles aleatorios, pide un recorrido y califica.
+   quiz.js · Módulo 3: Evaluador de competencias (Validación 5 a 20)
    ========================================================== */
 
 class Quiz {
@@ -13,9 +12,9 @@ class Quiz {
     this.indice = 0;
     this.aciertos = 0;
     this.resultados = [];
-    this.actual = null;        // { arbol, tipo, esperado }
+    this.actual = null;
     this.respondida = false;
-    this._ficha = 0;           // evita que una animación vieja pise a la nueva pregunta
+    this._ficha = 0;
 
     this.$('quiz-empezar').addEventListener('click', () => this.empezar());
     this.$('quiz-comprobar').addEventListener('click', () => this.comprobar());
@@ -27,13 +26,18 @@ class Quiz {
     });
   }
 
-  /** Muestra solo una de las tres pantallas del quiz. */
   _mostrar(id) {
     ['quiz-inicio', 'quiz-pregunta', 'quiz-final'].forEach((p) => { this.$(p).hidden = p !== id; });
   }
 
   empezar() {
-    this.total = Number(this.$('quiz-n').value);
+    let n = Number(this.$('quiz-n').value);
+    if (isNaN(n) || n < 5 || n > 20) {
+      mostrarToast('El número de preguntas debe ser un valor entre 5 y 20.');
+      this.$('quiz-n').focus();
+      return;
+    }
+    this.total = n;
     this.indice = 0;
     this.aciertos = 0;
     this.resultados = [];
@@ -41,15 +45,11 @@ class Quiz {
     this.nuevaPregunta();
   }
 
-  /* ---------- Generación de preguntas ---------- */
-
-  /** Árbol aleatorio de 5 a 8 nodos (números del 1 al 99 o letras A-Z). */
   _arbolAleatorio() {
     const usarLetras = Math.random() < 0.25;
     const cantidad = aleatorioEntre(5, 8);
     let arbol;
 
-    // Se repite hasta que el árbol no sea demasiado alto (para que se vea bien)
     do {
       let pool;
       if (usarLetras) pool = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
@@ -83,15 +83,11 @@ class Quiz {
     this.$('quiz-feedback').hidden = true;
     this.$('quiz-siguiente').hidden = true;
 
-    // El árbol "crece" desde la raíz al aparecer
     this.vis.limpiarEstados();
     this.vis.actualizar(arbol);
     entrada.focus();
   }
 
-  /* ---------- Evaluación ---------- */
-
-  /** Convierte el texto escrito en una lista de valores (acepta espacios, comas, flechas). */
   _leerRespuesta(texto) {
     return texto.trim().split(/[\s,;>→]+/).filter((t) => t !== '').map((t) => t.toUpperCase());
   }
@@ -138,13 +134,12 @@ class Quiz {
     this._mostrarOrden();
   }
 
-  /** Marca los nodos en el orden correcto para que el alumno vea el recorrido. */
   async _mostrarOrden() {
     const ficha = this._ficha;
     const { arbol, tipo } = this.actual;
     const visitas = arbol.generarRecorrido(tipo).filter((e) => e.t === 'visita');
     for (const ev of visitas) {
-      if (ficha !== this._ficha) return;   // ya cambió la pregunta
+      if (ficha !== this._ficha) return;
       this.vis.marcar(ev.nodo, 'visitado');
       await dormir(260);
     }
@@ -155,8 +150,6 @@ class Quiz {
     if (this.indice >= this.total) this.finalizar();
     else this.nuevaPregunta();
   }
-
-  /* ---------- Resultado final ---------- */
 
   finalizar() {
     this._ficha++;

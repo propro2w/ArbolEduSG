@@ -1,45 +1,41 @@
 /* ==========================================================
-   Visualizador.js · Dibuja un ArbolBinario en un <svg> y anima
-   el movimiento de los nodos. No contiene lógica del árbol.
+   Visualizador.js · Dibuja el árbol con Zoom, Paneo y Puntero
    ========================================================== */
 
 class Visualizador {
-  /**
-   * @param {SVGElement} svg
-   * @param {{alClickNodo?: function(Nodo)}} opciones
-   */
   constructor(svg, opciones = {}) {
     this.svg = svg;
     this.arbol = null;
 
-    this.pos = new Map();       // posición actual (en píxeles SVG) por id de nodo / 'fantasma' / 'puntero'
-    this.destinos = new Map();  // posición final de cada nodo
-    this.padres = new Map();    // id hijo → id padre
-    this.niveles = [];          // [{nivel, y}] para las guías
+    this.pos = new Map();
+    this.destinos = new Map();
+    this.padres = new Map();
+    this.niveles = [];
 
-    this.estados = new Map();   // id nodo → 'actual' | 'camino' | 'visitado' | 'encontrado' | 'eliminar'
-    this.aristas = new Map();   // id hijo → { clase, etiqueta }
-    this.fantasma = null;       // { valor, color } valor que viaja buscando su lugar
-    this.puntero = false;       // flecha que recorre el árbol
-    this.nulo = null;           // { padreId, dir } hueco vacío donde terminó la búsqueda
+    this.estados = new Map();
+    this.aristas = new Map();
+    this.fantasma = null;
+    this.puntero = false;
+    this.nulo = null;
     this.mostrarNiveles = false;
 
-    this.vb = { w: 640, h: 320 };
-    this.duracion = 450;        // ms de cada movimiento
+    this.vb = { w: 640, h: 320, x: 0, y: 0 };
+    this.duracion = 450;
     this.alClickNodo = opciones.alClickNodo || null;
 
-    // Medidas
-    this.R = 22;      // radio del nodo
-    this.dx = 58;     // separación horizontal
-    this.dy = 78;     // separación vertical
-    this.mx = 44;     // margen lateral
-    this.my = 74;     // margen superior
+    this.R = 22;
+    this.dx = 58;
+    this.dy = 78;
+    this.mx = 44;
+    this.my = 74;
 
     this._raf = null;
     this._fin = null;
     this._reducir = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    // Un solo "listener" para todos los nodos (el SVG se redibuja seguido)
+    this._configurarZoomPan();
+    this._configurarBotonesZoom();
+
     svg.addEventListener('click', (e) => {
       const g = e.target.closest('.nodo');
       if (!g || !this.alClickNodo || !this.arbol) return;
@@ -49,9 +45,69 @@ class Visualizador {
     });
   }
 
-  /* ---------- Distribución (layout) ---------- */
+  _configurarZoomPan() {
+    let arrastrando = false;
+    let inicioX = 0, inicioY = 0;
 
-  /** Calcula dónde debe ir cada nodo: x por orden inorden, y por nivel. */
+    this.svg.addEventListener('mousedown', (e) => {
+      if (e.target.closest('.nodo')) return;
+      arrastrando = true;
+      inicioX = e.clientX;
+      inicioY = e.clientY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!arrastrando) return;
+      const dx = (e.clientX - inicioX) * (this.vb.w / this.svg.clientWidth);
+      const dy = (e.clientY - inicioY) * (this.vb.h / this.svg.clientHeight);
+      this.vb.x -= dx;
+      this.vb.y -= dy;
+      inicioX = e.clientX;
+      inicioY = e.clientY;
+      this._aplicarViewBox();
+    });
+
+    window.addEventListener('mouseup', () => { arrastrando = false; });
+
+    this.svg.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? 0.9 : 1.1;
+      this.vb.w *= factor;
+      this.vb.h *= factor;
+      this._aplicarViewBox();
+    }, { passive: false });
+  }
+
+  _configurarBotonesZoom() {
+    const btnIn = document.getElementById('btn-zoom-in');
+    const btnOut = document.getElementById('btn-zoom-out');
+    const btnReset = document.getElementById('btn-zoom-reset');
+
+    if (btnIn) {
+      btnIn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.zoom(0.8);
+      });
+    }
+    if (btnOut) {
+      btnOut.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.zoom(1.25);
+      });
+    }
+    if (btnReset) {
+      btnReset.addEventListener('click', (e) => {
+        e.preventDefault();
+        this._calcularLayout();
+        this.dibujar();
+      });
+    }
+  }
+
+  _aplicarViewBox() {
+    this.svg.setAttribute('viewBox', `${this.vb.x} ${this.vb.y} ${this.vb.w} ${this.vb.h}`);
+  }
+
   _calcularLayout() {
     const info = new Map();
     let columna = 0;
@@ -64,7 +120,7 @@ class Visualizador {
       if (nivel > maxNivel) maxNivel = nivel;
       recorrer(nodo.der, nivel + 1, nodo);
     };
-    recorrer(this.arbol.raiz, 0, null);
+    if (this.arbol) recorrer(this.arbol.raiz, 0, null);
 
     const anchoArbol = Math.max(0, (columna - 1) * this.dx);
     const w = Math.max(640, anchoArbol + 2 * this.mx);
@@ -82,19 +138,17 @@ class Visualizador {
     if (columna > 0) {
       for (let n = 0; n <= maxNivel; n++) this.niveles.push({ nivel: n, y: this.my + n * this.dy });
     }
-    this.vb = { w, h };
-    this.svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    this.vb.w = w;
+    this.vb.h = h;
+    this.vb.x = 0;
+    this.vb.y = 0;
+    this._aplicarViewBox();
   }
 
-  /**
-   * Recalcula posiciones y anima los nodos hasta su lugar nuevo.
-   * Los nodos nuevos nacen en la posición de su padre.
-   */
   actualizar(arbol = this.arbol, animar = true) {
     this.arbol = arbol;
     this._calcularLayout();
 
-    // Posición inicial de nodos nuevos (en preorden, el padre ya tiene la suya)
     arbol.todosLosNodos().forEach((n) => {
       if (this.pos.has(n.id)) return;
       const padrePos = this.pos.get(this.padres.get(n.id));
@@ -102,7 +156,6 @@ class Visualizador {
       this.pos.set(n.id, { x: base.x, y: base.y });
     });
 
-    // Olvidar nodos que ya no existen
     for (const clave of [...this.pos.keys()]) {
       if (typeof clave === 'number' && !this.destinos.has(clave)) this.pos.delete(clave);
     }
@@ -110,15 +163,7 @@ class Visualizador {
     return this.mover(new Map(this.destinos), animar ? this.duracion : 0);
   }
 
-  /* ---------- Animación ---------- */
-
-  /**
-   * Mueve las claves indicadas hasta sus destinos.
-   * @param {Map<any,{x:number,y:number}>} destinos
-   * @returns {Promise<void>} se resuelve al terminar el movimiento
-   */
   mover(destinos, duracion = this.duracion) {
-    // Si había un movimiento en curso, se corta y se libera su promesa
     if (this._raf) cancelAnimationFrame(this._raf);
     if (this._fin) this._fin();
 
@@ -138,7 +183,7 @@ class Visualizador {
 
       const paso = (ahora) => {
         const t = Math.min(1, (ahora - t0) / duracion);
-        const suave = 1 - Math.pow(1 - t, 3); // ease-out cúbico
+        const suave = 1 - Math.pow(1 - t, 3);
         destinos.forEach((d, k) => {
           const s = inicio.get(k);
           this.pos.set(k, { x: s.x + (d.x - s.x) * suave, y: s.y + (d.y - s.y) * suave });
@@ -156,11 +201,10 @@ class Visualizador {
     });
   }
 
-  /** Desplaza el "fantasma" o el "puntero" hasta un nodo. */
   colocar(clave, nodo, duracion = this.duracion) {
     const d = this.destinos.get(nodo.id);
     if (!d) return Promise.resolve();
-    if (!this.pos.has(clave)) this.pos.set(clave, { x: d.x, y: d.y - 50 }); // entra desde arriba
+    if (!this.pos.has(clave)) this.pos.set(clave, { x: d.x, y: d.y - 50 });
     return this.mover(new Map([[clave, { x: d.x, y: d.y }]]), duracion);
   }
 
@@ -170,8 +214,6 @@ class Visualizador {
     if (clave === 'puntero') this.puntero = false;
     this.dibujar();
   }
-
-  /* ---------- Marcas visuales ---------- */
 
   marcar(nodo, estado) { this.estados.set(nodo.id, estado); this.dibujar(); }
   estadoDe(nodo) { return this.estados.get(nodo.id) || ''; }
@@ -189,8 +231,6 @@ class Visualizador {
     this.dibujar();
   }
 
-  /* ---------- Dibujo ---------- */
-
   dibujar() {
     if (!this.arbol) return;
     const { w, h } = this.vb;
@@ -198,7 +238,6 @@ class Visualizador {
     const nodos = this.arbol.todosLosNodos();
     let s = '';
 
-    // Guías de nivel
     if (this.mostrarNiveles) {
       for (const lv of this.niveles) {
         s += `<line class="guia" x1="0" y1="${lv.y}" x2="${w}" y2="${lv.y}"/>`;
@@ -206,7 +245,6 @@ class Visualizador {
       }
     }
 
-    // Aristas
     for (const n of nodos) {
       const p = this.pos.get(n.id);
       if (!p) continue;
@@ -223,7 +261,6 @@ class Visualizador {
       }
     }
 
-    // Hueco vacío (∅) donde terminó una búsqueda o donde se insertará
     if (this.nulo) {
       const p = this.pos.get(this.nulo.padreId);
       if (p) {
@@ -234,7 +271,6 @@ class Visualizador {
       }
     }
 
-    // Nodos
     for (const n of nodos) {
       const p = this.pos.get(n.id);
       if (!p) continue;
@@ -247,25 +283,32 @@ class Visualizador {
       s += `<text style="font-size:${tam}px">${escapar(n.valor)}</text></g>`;
     }
 
-    // Valor "fantasma" que viaja buscando su posición
     const pf = this.pos.get('fantasma');
     if (this.fantasma && pf) {
       s += `<g class="fantasma" transform="translate(${pf.x.toFixed(1)} ${(pf.y - 46).toFixed(1)})">`;
       s += `<circle r="16" fill="${this.fantasma.color}"/><text>${escapar(this.fantasma.valor)}</text></g>`;
     }
 
-    // Puntero del recorrido
     const pp = this.pos.get('puntero');
     if (this.puntero && pp) {
       const x = pp.x, y = pp.y;
       s += `<polygon class="puntero" points="${x - 10},${y - 48} ${x + 10},${y - 48} ${x},${y - 28}"/>`;
     }
 
-    // Árbol vacío
     if (nodos.length === 0 && !this.fantasma) {
       s += `<text class="vacio" x="${w / 2}" y="${h / 2}">Árbol vacío: inserta un valor para empezar</text>`;
     }
 
     this.svg.innerHTML = s;
+  }
+
+  zoom(factor) {
+    const cx = this.vb.x + this.vb.w / 2;
+    const cy = this.vb.y + this.vb.h / 2;
+    this.vb.w *= factor;
+    this.vb.h *= factor;
+    this.vb.x = cx - this.vb.w / 2;
+    this.vb.y = cy - this.vb.h / 2;
+    this._aplicarViewBox();
   }
 }

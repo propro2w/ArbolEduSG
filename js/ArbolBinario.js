@@ -8,8 +8,6 @@ class ArbolBinario {
     this.tamano = 0;
   }
 
-  /* ---------- Utilidades de valores ---------- */
-
   static comparar(a, b) {
     const aNum = typeof a === 'number';
     const bNum = typeof b === 'number';
@@ -19,28 +17,18 @@ class ArbolBinario {
     return 0;
   }
 
-  /**
-   * Convierte y valida el texto según el modo seleccionado ('numerico' o 'letras').
-   * Rechaza estrictamente números decimales.
-   */
   static parsear(texto, modo = 'numerico') {
     const t = String(texto).trim();
     if (t === '') return { error: 'Escribe un valor.' };
 
     if (modo === 'numerico') {
-      if (/^-?\d+$/.test(t)) {
-        return { valor: Number(t) };
-      }
-      if (/^-?\d+\.\d+$/.test(t)) {
-        return { error: 'No se permiten números decimales, solo enteros.' };
-      }
+      if (/^-?\d+$/.test(t)) return { valor: Number(t) };
+      if (/^-?\d+\.\d+$/.test(t)) return { error: 'No se permiten números decimales, solo enteros.' };
       return { error: 'En modo numérico solo se permiten enteros (ej. 42).' };
     }
 
     if (modo === 'letras') {
-      if (/^[a-zA-Z]$/.test(t)) {
-        return { valor: t.toUpperCase() };
-      }
+      if (/^[a-zA-Z]$/.test(t)) return { valor: t.toUpperCase() };
       return { error: 'En modo letras solo debes ingresar un único carácter de la A a la Z.' };
     }
 
@@ -55,8 +43,6 @@ class ArbolBinario {
     this.raiz = null;
     this.tamano = 0;
   }
-
-  /* ---------- Búsqueda ---------- */
 
   buscarRuta(valor) {
     const pasos = [];
@@ -74,24 +60,27 @@ class ArbolBinario {
     return { pasos, encontrado: false, nodo: null };
   }
 
-  /* ---------- Inserción ---------- */
-
   insertar(valor) {
-    const ruta = this.buscarRuta(valor);
-    if (ruta.encontrado) return null;
-
     const nuevo = new Nodo(valor);
     if (this.raiz === null) {
       this.raiz = nuevo;
-    } else {
-      const ultimo = ruta.pasos[ruta.pasos.length - 1];
-      ultimo.nodo[ultimo.dir] = nuevo;
+      this.tamano++;
+      return nuevo;
+    }
+
+    let actual = this.raiz;
+    while (true) {
+      const cmp = ArbolBinario.comparar(valor, actual.valor);
+      const dir = cmp < 0 ? 'izq' : 'der';
+      if (actual[dir] === null) {
+        actual[dir] = nuevo;
+        break;
+      }
+      actual = actual[dir];
     }
     this.tamano++;
     return nuevo;
   }
-
-  /* ---------- Eliminación ---------- */
 
   eliminar(valor) {
     const antes = this.tamano;
@@ -103,8 +92,14 @@ class ArbolBinario {
     if (nodo === null) return null;
 
     const cmp = ArbolBinario.comparar(valor, nodo.valor);
-    if (cmp < 0) { nodo.izq = this._eliminar(nodo.izq, valor); return nodo; }
-    if (cmp > 0) { nodo.der = this._eliminar(nodo.der, valor); return nodo; }
+    if (cmp < 0) {
+      nodo.izq = this._eliminar(nodo.izq, valor);
+      return nodo;
+    }
+    if (cmp > 0) {
+      nodo.der = this._eliminar(nodo.der, valor);
+      return nodo;
+    }
 
     this.tamano--;
     if (nodo.izq === null) return nodo.der;
@@ -128,27 +123,25 @@ class ArbolBinario {
     return nodo;
   }
 
-  /* ---------- Recorridos ---------- */
-
   generarRecorrido(tipo) {
     const eventos = [];
-    this._recorrer(this.raiz, tipo, eventos);
+    this._recorrer(this.raiz, tipo, eventos, []);
     return eventos;
   }
 
-  _recorrer(nodo, tipo, eventos) {
+  _recorrer(nodo, tipo, eventos, pila = []) {
     if (nodo === null) return;
+    pila.push(`${tipo}(${nodo.valor})`);
+    eventos.push({ t: 'entra', nodo, pila: [...pila] });
 
-    eventos.push({ t: 'entra', nodo });
-    if (tipo === 'preorden') eventos.push({ t: 'visita', nodo });
+    if (tipo === 'preorden') eventos.push({ t: 'visita', nodo, pila: [...pila] });
+    this._recorrer(nodo.izq, tipo, eventos, pila);
+    if (tipo === 'inorden') eventos.push({ t: 'visita', nodo, pila: [...pila] });
+    this._recorrer(nodo.der, tipo, eventos, pila);
+    if (tipo === 'postorden') eventos.push({ t: 'visita', nodo, pila: [...pila] });
 
-    this._recorrer(nodo.izq, tipo, eventos);
-    if (tipo === 'inorden') eventos.push({ t: 'visita', nodo });
-
-    this._recorrer(nodo.der, tipo, eventos);
-    if (tipo === 'postorden') eventos.push({ t: 'visita', nodo });
-
-    eventos.push({ t: 'sale', nodo });
+    eventos.push({ t: 'sale', nodo, pila: [...pila] });
+    pila.pop();
   }
 
   recorrido(tipo) {
@@ -156,8 +149,6 @@ class ArbolBinario {
       .filter((e) => e.t === 'visita')
       .map((e) => e.nodo.valor);
   }
-
-  /* ---------- Propiedades del árbol ---------- */
 
   todosLosNodos() {
     const lista = [];
@@ -180,7 +171,6 @@ class ArbolBinario {
     return this.alturaDe(this.raiz);
   }
 
-  /** Grado máximo del árbol (el mayor grado entre todos sus nodos). */
   gradoMaximo() {
     if (this.estaVacio()) return 0;
     let max = 0;
@@ -190,6 +180,24 @@ class ArbolBinario {
       if (max === 2) break;
     }
     return max;
+  }
+
+  contarSubarboles() {
+    if (!this.raiz) return { izq: 0, der: 0 };
+    const contar = (n) => (n === null ? 0 : 1 + contar(n.izq) + contar(n.der));
+    return {
+      izq: this.raiz.izq ? contar(this.raiz.izq) : 0,
+      der: this.raiz.der ? contar(this.raiz.der) : 0,
+    };
+  }
+
+  contarSubarbolNodo(nodo) {
+    if (!nodo) return { izq: 0, der: 0 };
+    const contar = (n) => (n === null ? 0 : 1 + contar(n.izq) + contar(n.der));
+    return {
+      izq: nodo.izq ? contar(nodo.izq) : 0,
+      der: nodo.der ? contar(nodo.der) : 0,
+    };
   }
 
   infoNodo(nodo) {

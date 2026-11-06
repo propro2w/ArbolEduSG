@@ -1,11 +1,9 @@
 /* ==========================================================
-   utilidades.js · Funciones de apoyo (no tienen que ver con el árbol)
+   utilidades.js · Funciones de apoyo y Audio Web
    ========================================================== */
 
-/** Espera `ms` milisegundos (se usa con await). */
 const dormir = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** Escapa texto para insertarlo de forma segura dentro de HTML/SVG. */
 function escapar(texto) {
   return String(texto)
     .replace(/&/g, '&amp;')
@@ -14,7 +12,6 @@ function escapar(texto) {
     .replace(/"/g, '&quot;');
 }
 
-/** Muestra un aviso breve en la parte inferior de la pantalla. */
 let _temporizadorToast = null;
 function mostrarToast(mensaje) {
   const t = document.getElementById('toast');
@@ -24,12 +21,10 @@ function mostrarToast(mensaje) {
   _temporizadorToast = setTimeout(() => t.classList.remove('visible'), 3200);
 }
 
-/** Número entero aleatorio entre min y max (ambos incluidos). */
 function aleatorioEntre(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-/** Mezcla un arreglo (Fisher-Yates) y devuelve una copia. */
 function mezclar(arreglo) {
   const copia = [...arreglo];
   for (let i = copia.length - 1; i > 0; i--) {
@@ -39,7 +34,44 @@ function mezclar(arreglo) {
   return copia;
 }
 
-/** Efecto de onda (micro-animación) al presionar cualquier botón .btn. */
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+function reproducirSonido(tipo) {
+  try {
+    if (!audioCtx) audioCtx = new AudioContext();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    const ahora = audioCtx.currentTime;
+
+    if (tipo === 'insertar') {
+      osc.frequency.setValueAtTime(350, ahora);
+      osc.frequency.exponentialRampToValueAtTime(700, ahora + 0.15);
+      gain.gain.setValueAtTime(0.08, ahora);
+      gain.gain.exponentialRampToValueAtTime(0.001, ahora + 0.15);
+      osc.start(ahora);
+      osc.stop(ahora + 0.15);
+    } else if (tipo === 'eliminar') {
+      osc.frequency.setValueAtTime(500, ahora);
+      osc.frequency.exponentialRampToValueAtTime(200, ahora + 0.2);
+      gain.gain.setValueAtTime(0.08, ahora);
+      gain.gain.exponentialRampToValueAtTime(0.001, ahora + 0.2);
+      osc.start(ahora);
+      osc.stop(ahora + 0.2);
+    } else if (tipo === 'paso') {
+      osc.frequency.setValueAtTime(440, ahora);
+      gain.gain.setValueAtTime(0.04, ahora);
+      gain.gain.exponentialRampToValueAtTime(0.001, ahora + 0.08);
+      osc.start(ahora);
+      osc.stop(ahora + 0.08);
+    }
+  } catch (e) {}
+}
+
 document.addEventListener('click', (e) => {
   const boton = e.target.closest('.btn');
   if (!boton || boton.disabled) return;

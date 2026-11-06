@@ -90,6 +90,11 @@
             <span class="stats">Altura: <b id="stat-altura">–</b></span>
             <span class="stats">Grado Árbol: <b id="stat-grado">–</b></span>
             <label class="check"><input type="checkbox" id="chk-niveles"> Mostrar niveles</label>
+            <div class="zoom-controles" style="display:inline-flex; gap:0.3rem; margin-left:auto;">
+              <button class="btn suave" id="btn-zoom-in" title="Acercar">+</button>
+              <button class="btn suave" id="btn-zoom-out" title="Alejar">-</button>
+              <button class="btn suave" id="btn-zoom-reset" title="Restablecer zoom">⟲</button>
+            </div>
           </div>
 
           <svg id="svg-sim" class="lienzo" viewBox="0 0 640 320" preserveAspectRatio="xMidYMid meet"
@@ -110,7 +115,7 @@
         <div class="panel">
           <h3>Consola</h3>
           <div id="consola" class="consola" aria-live="polite">
-            <div class="linea cmd">&gt; Elige un recorrido para ver su salida aquí.</div>
+            <div class="linea cmd">&gt; Elige un recorrido o haz clic en un nodo.</div>
           </div>
         </div>
         <div class="panel">
@@ -190,11 +195,8 @@
         <h2>Evaluador de competencias</h2>
         <p>Te mostraremos árboles aleatorios y te pediremos el resultado de un recorrido. Escribe los valores separados por espacios o comas.</p>
         <div class="fila">
-          <label for="quiz-n">Número de preguntas</label>
-          <select id="quiz-n">
-            <option value="5">5</option>
-            <option value="10">10</option>
-          </select>
+          <label for="quiz-n">Número de preguntas (5 - 20)</label>
+          <input type="number" id="quiz-n" min="5" max="20" value="5" style="width: 80px; padding: 0.4rem; border-radius: 6px; border: 1px solid var(--tinta-2);">
           <button class="btn primario" id="quiz-empezar">Comenzar evaluación</button>
         </div>
       </div>
@@ -233,7 +235,7 @@
 
 <div id="toast" role="status" aria-live="polite"></div>
 
-<!-- Orden importante: utilidades → clases del motor → módulos → arranque -->
+<!-- Orden de scripts -->
 <script src="js/utilidades.js"></script>
 <script src="js/Nodo.js"></script>
 <script src="js/ArbolBinario.js"></script>
